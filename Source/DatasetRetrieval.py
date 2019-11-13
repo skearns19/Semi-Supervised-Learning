@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from keras.preprocessing.image import img_to_array
 
-import Source.Generator as generator
+import Generator as generator
 import os
 import cv2 #USED FOR EDGE DETECTION IN IMAGES
 
@@ -21,7 +21,7 @@ class DatasetRetrieval:
 
     # Used to initialize the class/Object when created
     def __init__(self):
-        self.testSize = 3000
+        self.testSize = 500
         self.compArray=np.zeros(())
         self.pixArray = np.zeros(()) # STORES 12x12 IMAGES
         self.imArray=np.zeros((self.testSize,1))
@@ -32,19 +32,23 @@ class DatasetRetrieval:
         self.edgePixArray=self.edgePixArray.astype(np.ndarray)
         self.origArray = np.zeros(()) # STORES 100 x 100 IMAGES
         self.origArray=self.origArray.astype(np.ndarray)
+        self.src_images=[]
+        self.tar_images=[]
 
     """
     Used to retrieve a random set of images in dataset...
     """
     def retrieveImages(self):
         # Reads file named testPhotos, which points to each photo name
-        with open(os.getcwd()[:-7]+'\\FileNames\\fruitNames.txt','r')as f:
+        with open(os.getcwd()+'\\FileNames\\fruitNames.txt','r',encoding='utf8',newline='\r\n')as f:
             content = f.readlines()
             # Retrieve random number of objects in dataset to train model...
             for item in range(0,self.testSize):
                 rand = np.random.randint(0,high=28587)
-                self.imArray[item]= str(content[rand][:-1])  #imArray contains full quality image set locations
-            self.drawImageSample(100,'C:\\Users\\spada\\OneDrive\\Documents\\CS368\\datasets\\BasicFruit Images')
+                self.imArray[item]= ''.join(str(content[rand][0:-5]).strip('\r\n') + 'jpg')
+                print(self.imArray[item],"fdjkjk")
+                #self.imArray[item]= str(content[rand].strip('\\'))  #imArray contains full quality image set locations
+            return self.drawImageSample(self.testSize,'C:\\Users\\spada\\OneDrive\\Documents\\CS368\\datasets\\BasicFruit Images')
 
 
     ################################
@@ -58,15 +62,28 @@ class DatasetRetrieval:
         for item in range(0,sample_size):
 
             """                 PLEASE CHANGE LINK TO LOCATION OF FRUIT                            """
-            img = cv2.imread(location + '\\%s' % ' '.join(        #'E:\\Users\\i-pod\\Desktop\\Projects_CS\\Python\\Fruit-Images\\Fruit-Images-Dataset-master\\BasicFruit Images\\%s' 'C:\\Users\\spada\\OneDrive\\Documents\\CS368\\datasets\\BasicFruit Images\\%s
-                map(str, self.imArray[item])))
+            img = cv2.imread(location + '\\%s' % ' '.join(self.imArray[item]))
             print(self.imArray[item])
             """
             Pixelate image given cv2's resize and interpolation...
             """
-            width, height, _ = img.shape
+            """
+            Just in case string gets cut off of file location, try to add 'g' to end
+            """
+            try:
+                width, height, _ = img.shape
+            except:
+                tmp = str(self.imArray[item])
+                tmp = tmp.strip('[]').strip('\'')
+                tmp+='g'
+                print(tmp)
+                img = cv2.imread(location + '\\%s' % ''.join(
+                    tmp))
+                width, height, _ = img.shape
+
+
             edges = cv2.Canny(img, width, height)  # CREATES AN EDGE DETECTION IMAGE
-            w, h = (12, 12)  # New width/height of image...
+            w, h = (33, 33)  # New width/height of image...
             #Creates pixelated photos using Inter-Linear interpolation
             temp = cv2.resize(img, (w, h), interpolation=cv2.INTER_BITS)
             output = cv2.resize(temp, (width, height), interpolation=cv2.INTER_AREA)
@@ -111,20 +128,20 @@ class DatasetRetrieval:
         print("Saved to 'fruits.npz'!!")
         self.src_images,self.tar_images= self.loadData("fruits.npz")
         print(self.src_images[50][50][50][1])
-
-
+        return [self.src_images,self.tar_images]#,np.ones((sample_size, 1, 1, 1))
 
 
     # clears folder where test data will go...
     def clearFolder(self):
         # Iterates through files in test labeled data
-        for f in os.listdir(os.getcwd()[:-7]+'\\TestLabeledData\\'):
-            file_path = os.path.join(os.getcwd()[:-7]+'\\TestLabeledData\\', f)
+        for f in os.listdir(os.getcwd()+'\\TestLabeledData\\'):
+            file_path = os.path.join(os.getcwd()+'\\TestLabeledData\\', f)
             try:
                 if os.path.isfile(file_path):
                     os.unlink(file_path)
             except Exception as e:
                 print(e)
+
     """
     Getters and setters for above arrays...
     """
